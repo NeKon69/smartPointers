@@ -7,7 +7,7 @@
 
 #include <iostream>
 
-#include "raw_namespace_smart_ptr.h"
+#include "fwd.h"
 
 namespace raw {
 template<typename T>
