@@ -2,8 +2,8 @@
 // Created by progamers on 5/28/25.
 //
 
-#ifndef SMARTPOINTERS_UNQIUE_PTR_H
-#define SMARTPOINTERS_UNQIUE_PTR_H
+#ifndef SMARTPOINTERS_UNIQUE_PTR_H
+#define SMARTPOINTERS_UNIQUE_PTR_H
 
 #include "classes/smart_ptr_base.h"
 
@@ -31,11 +31,7 @@ public:
 	// Move assignment operator
 	unique_ptr& operator=(unique_ptr&& other) noexcept {
 		// Clean up and transfer ownership
-		if (this != &other) {
-			delete this->ptr;
-			this->ptr = other.ptr;
-			other.ptr = nullptr;
-		}
+		reset(other.release());
 		return *this;
 	}
 
@@ -92,11 +88,7 @@ public:
 	// Move assignment operator
 	unique_ptr& operator=(unique_ptr&& other) noexcept {
 		// Clean up and transfer ownership
-		if (this != &other) {
-			delete[] this->ptr;
-			this->ptr = other.ptr;
-			other.ptr = nullptr;
-		}
+		reset(other.release());
 		return *this;
 	}
 
@@ -131,4 +123,4 @@ public:
 };
 } // namespace raw
 
-#endif // SMARTPOINTERS_UNQIUE_PTR_H
+#endif // SMARTPOINTERS_UNIQUE_PTR_H
