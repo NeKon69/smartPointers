@@ -1,4 +1,4 @@
-#include "include/run_all.h"
+#include "../include/run_all.h"
 
 int main() {
 	run_all();

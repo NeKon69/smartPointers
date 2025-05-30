@@ -12,8 +12,8 @@
 #include <memory>
 #include <string>
 
-#include "../../include/classes/unique_ptr/unique_ptr.h"
-#include "../../include/raw_namespace_functions.h"
+#include "../../include/raw/helper.h"
+#include "../../include/raw/unique_ptr.h"
 
 extern int s_active_test_objects;
 

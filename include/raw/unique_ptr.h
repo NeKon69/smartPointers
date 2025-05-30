@@ -5,7 +5,7 @@
 #ifndef SMARTPOINTERS_UNIQUE_PTR_H
 #define SMARTPOINTERS_UNIQUE_PTR_H
 
-#include "classes/smart_ptr_base.h"
+#include "smart_ptr_base.h"
 
 namespace raw {
 template<typename T>

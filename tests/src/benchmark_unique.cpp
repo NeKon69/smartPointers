@@ -285,7 +285,7 @@ void performance_comparison_test() {
 	std::cout << "\n--- Performance Comparison Test: raw::unique_ptr vs std::unique_ptr ---\n";
 
 	const int NUM_TRIALS	= 20;
-	const int OPS_PER_TRIAL = 10000000;
+	const int OPS_PER_TRIAL = 1000000;
 
 	print_table_header();
 
