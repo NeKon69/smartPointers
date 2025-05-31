@@ -14,25 +14,32 @@
 // Struct to emulate shared_ptr's internal structure
 template<typename T>
 struct combined {
-	T		 ptr;
 	raw::hub hub_ptr;
+	T		 ptr;
 };
 
 namespace raw {
 
 template<typename T>
-static void delete_single_object(void* obj_ptr) {
+static void delete_single_object(void* obj_ptr, size_t) {
 	delete static_cast<T*>(obj_ptr);
 }
 
 template<typename T>
-static void delete_array_object(void* obj_ptr) {
+static void delete_array_object(void* obj_ptr, size_t) {
 	delete[] static_cast<T*>(obj_ptr);
 }
 
 template<typename T>
-static void destroy_make_shared_object(void* obj_ptr) {
+static void destroy_make_shared_object(void* obj_ptr, size_t) {
 	static_cast<T*>(obj_ptr)->~T();
+}
+
+template<typename T>
+static void destroy_make_shared_array(void* obj_ptr, size_t size) {
+	for (size_t i = 0; i < size; ++i) {
+		static_cast<T*>(obj_ptr)[i].~T();
+	}
 }
 
 static void deallocate_hub_for_new_single(void* hub_ptr, void*) {
@@ -82,11 +89,12 @@ std::enable_if_t<!std::is_array_v<T>, raw::shared_ptr<T>> make_shared(Args&&... 
 	hub* constructed_hub = nullptr;
 	try {
 		// Try constructing the object and the hub in the allocated memory with proper alignment
-		constructed_ptr =
-			new (raw_block + offsetof(combined<T>, ptr)) T(std::forward<Args>(args)...);
 		constructed_hub = new (raw_block + offsetof(combined<T>, hub_ptr))
 			hub(constructed_ptr, raw_block, &destroy_make_shared_object<T>,
 				deallocate_make_shared_block);
+		constructed_ptr =
+			new (raw_block + offsetof(combined<T>, ptr)) T(std::forward<Args>(args)...);
+		constructed_hub->set_managed_object_ptr(constructed_ptr);
 	} catch (const std::exception& e) {
 		// If construction fails, clean up constructed object and then free the memory
 		if (constructed_ptr != nullptr) {
@@ -99,35 +107,56 @@ std::enable_if_t<!std::is_array_v<T>, raw::shared_ptr<T>> make_shared(Args&&... 
 	return shared_ptr<T>(constructed_ptr, constructed_hub);
 }
 
-template<typename T, typename... Args>
 /**
  * @brief Creates a shared_ptr that manages a static array.
  * @param size size of the array.
  */
-std::enable_if_t<std::is_array_v<T>, shared_ptr<T>> make_shared(size_t size) {
-	// Allocate a block of memory that can hold both the array and the hub
+template<typename T>
+std::enable_if_t<std::is_array_v<T>, raw::shared_ptr<T>> make_shared(size_t size) {
+	using element_type = std::remove_extent_t<T>;
+
+	size_t hub_align		 = alignof(raw::hub);
+	size_t data_align		 = alignof(element_type);
+	size_t overall_alignment = std::max(hub_align, data_align);
+
+	size_t hub_size	   = sizeof(raw::hub);
+	size_t data_offset = (hub_size + overall_alignment - 1) / overall_alignment * overall_alignment;
+	size_t total_block_size			  = data_offset + size * sizeof(element_type);
+	size_t unaligned_total_block_size = data_offset + size * sizeof(element_type);
+	size_t aligned_total_block_size	  = (unaligned_total_block_size + overall_alignment - 1) /
+									  overall_alignment * overall_alignment;
+
 	std::byte* raw_block =
-		static_cast<std::byte*>(std::aligned_alloc(alignof(combined<T>), sizeof(combined<T>)));
+		static_cast<std::byte*>(std::aligned_alloc(overall_alignment, aligned_total_block_size));
 	if (!raw_block) {
 		throw std::bad_alloc();
 	}
-	T*	 constructed_ptr = nullptr;
-	hub* constructed_hub = nullptr;
+
+	element_type* constructed_ptr = nullptr;
+	raw::hub*	  constructed_hub = nullptr;
+
 	try {
-		// Try constructing the array and the hub in the allocated memory with proper alignment
-		constructed_ptr = new (raw_block + offsetof(combined<T>, ptr)) T[size]();
-		constructed_hub = new (raw_block + offsetof(combined<T>, hub_ptr))
-			hub(constructed_ptr, raw_block, &delete_array_object<T>, deallocate_make_shared_block);
-	} catch (const std::exception& e) {
-		// If construction fails, clean up constructed object and then free the memory
+		constructed_hub =
+			new (raw_block) raw::hub(nullptr, raw_block, &destroy_make_shared_array<element_type>,
+									 &deallocate_make_shared_block, size);
+
+		constructed_ptr = new (raw_block + data_offset) element_type[size]();
+		constructed_hub->set_managed_object_ptr(constructed_ptr);
+
+	} catch (...) {
 		if (constructed_ptr != nullptr) {
-			constructed_ptr->~T();
+			for (size_t i = 0; i < size; ++i) {
+				constructed_ptr[i].~element_type();
+			}
+		}
+		if (constructed_hub != nullptr) {
+			constructed_hub->~hub();
 		}
 		std::free(raw_block);
 		throw;
 	}
 
-	return shared_ptr<T>(constructed_ptr, constructed_hub);
+	return raw::shared_ptr<T>(constructed_ptr, constructed_hub);
 }
 
 } // namespace raw

@@ -13,8 +13,6 @@ namespace raw {
 template<typename T>
 class shared_ptr_base : public smart_ptr_base<T> {
 protected:
-	friend class shared_ptr<T>;
-	friend class shared_ptr<T[]>;
 	hub* hub_ptr = nullptr;
 
 public:
@@ -24,12 +22,6 @@ public:
 	shared_ptr_base() noexcept = default;
 
 	explicit shared_ptr_base(nullptr_t) noexcept : smart_ptr_base<T>(nullptr), hub_ptr(nullptr) {}
-
-	shared_ptr_base(T* p, hub* h) noexcept {
-		// We suppose that the hub is already created, so we don't need to increment use count here.
-		this->ptr = p;
-		hub_ptr	  = h;
-	}
 
 	shared_ptr_base(const shared_ptr_base& other) noexcept {
 		this->ptr = other.ptr;
@@ -72,15 +64,6 @@ public:
 		return *this;
 	}
 
-	shared_ptr_base& operator=(nullptr_t) noexcept {
-		if (hub_ptr) {
-			hub_ptr->decrement_use_count();
-			hub_ptr = nullptr;
-		}
-		this->ptr = nullptr;
-		return *this;
-	}
-
 	void swap(shared_ptr_base& other) noexcept {
 		std::swap(this->ptr, other.ptr);
 		std::swap(hub_ptr, other.hub_ptr);
@@ -103,8 +86,6 @@ public:
 
 template<typename T>
 class shared_ptr : public shared_ptr_base<T> {
-private:
-
 public:
 	// Inherit constructors
 	using shared_ptr_base<T>::shared_ptr_base;
@@ -124,6 +105,11 @@ public:
 		}
 	}
 
+	explicit shared_ptr(T* p, hub* hub) noexcept {
+		this->ptr	  = p;
+		this->hub_ptr = hub;
+	}
+
 	explicit shared_ptr(unique_ptr<T>&& unique) noexcept {
 		this->ptr	  = unique.release();
 		this->hub_ptr = new hub(this->ptr, nullptr, &raw::delete_single_object<T>,
@@ -132,13 +118,28 @@ public:
 
 	shared_ptr& operator=(unique_ptr<T>&& unique) noexcept {
 		shared_ptr temp(std::move(unique));
-		swap(temp);
+		this->swap(temp);
+		return *this;
+	}
+
+	shared_ptr& operator=(nullptr_t) noexcept {
+		if (this->hub_ptr) {
+			this->hub_ptr->decrement_use_count();
+			this->hub_ptr = nullptr;
+		}
+		this->ptr = nullptr;
+		return *this;
+	}
+
+	shared_ptr& operator=(T* unique) noexcept {
+		shared_ptr temp(std::move(unique));
+		this->swap(temp);
 		return *this;
 	}
 
 	void reset(T* p = nullptr) noexcept {
 		shared_ptr<T> temp(p);
-		swap(temp);
+		this->swap(temp);
 	}
 };
 
@@ -164,15 +165,35 @@ public:
 								&raw::deallocate_hub_for_new_array);
 	}
 
+	explicit shared_ptr(T* p, hub* hub) noexcept {
+		this->ptr	  = p;
+		this->hub_ptr = hub;
+	}
+
 	shared_ptr& operator=(unique_ptr<T[]>&& unique) noexcept {
 		shared_ptr temp(std::move(unique));
-		swap(temp);
+		this->swap(temp);
+		return *this;
+	}
+
+	shared_ptr& operator=(nullptr_t) noexcept {
+		if (this->hub_ptr) {
+			this->hub_ptr->decrement_use_count();
+			this->hub_ptr = nullptr;
+		}
+		this->ptr = nullptr;
+		return *this;
+	}
+
+	shared_ptr& operator=(T* unique) noexcept {
+		shared_ptr temp(std::move(unique));
+		this->swap(temp);
 		return *this;
 	}
 
 	void reset(T* p = nullptr) noexcept {
 		shared_ptr<T[]> temp(p);
-		swap(temp);
+		this->swap(temp);
 	}
 };
 } // namespace raw
