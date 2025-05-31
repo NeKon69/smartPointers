@@ -13,6 +13,7 @@ template<typename T>
 class weak_ptr_base : public smart_ptr_base<T> {
 protected:
 	hub* hub_ptr = nullptr;
+	friend class shared_ptr<T>;
 
 public:
 	// Inherit constructors
@@ -83,6 +84,12 @@ public:
 		if (hub_ptr) {
 			hub_ptr->decrement_weak_count();
 		}
+#ifdef RAW_SMART_PTR_DEBUG
+		std::cout << "Decrementing counter" << std::endl;
+		std::cout << "weak_ptr destructor called" << std::endl;
+		std::cout << "Pointer address: " << this->ptr << std::endl;
+		std::cout << "Use count: " << use_count() << std::endl;
+#endif
 	}
 
 	inline size_t use_count() const noexcept {
@@ -93,11 +100,14 @@ public:
 	}
 
 	inline bool expired() const noexcept {
+#ifdef RAW_SMART_PTR_DEBUG
+		std::cout << use_count() << std::endl;
+#endif
 		return use_count() == 0;
 	}
 
 	inline shared_ptr<T> lock() const noexcept {
-		if (this->hub_ptr && this->hub_ptr->use_count.load(std::memory_order_acquire) > 0) {
+		if (this->hub_ptr && this->hub_ptr->try_increment_use_count_if_not_zero()) {
 			return shared_ptr<T>(this->ptr, this->hub_ptr);
 		}
 		return shared_ptr<T>();

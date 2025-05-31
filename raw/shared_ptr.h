@@ -13,6 +13,7 @@ template<typename T>
 class shared_ptr_base : public smart_ptr_base<T> {
 protected:
 	hub* hub_ptr = nullptr;
+	friend class weak_ptr<T>;
 
 public:
 	// Inherit constructors
@@ -81,6 +82,12 @@ public:
 		if (hub_ptr) {
 			hub_ptr->decrement_use_count();
 		}
+#ifdef RAW_SMART_PTR_DEBUG
+		std::cout << "Decrementing counter" << std::endl;
+		std::cout << "shared_ptr destructor called" << std::endl;
+		std::cout << "Pointer address: " << this->ptr << std::endl;
+		std::cout << "Use count: " << use_count() << std::endl;
+#endif
 	}
 };
 
@@ -91,7 +98,13 @@ public:
 	using shared_ptr_base<T>::shared_ptr_base;
 
 	explicit shared_ptr(weak_ptr<T>& weak) noexcept {
-		*this = weak.lock();
+		if (weak.hub_ptr && weak.hub_ptr->try_increment_use_count_if_not_zero()) {
+			this->ptr	  = weak.ptr;
+			this->hub_ptr = weak.hub_ptr;
+		} else {
+			this->ptr	  = nullptr;
+			this->hub_ptr = nullptr;
+		}
 	}
 
 	explicit shared_ptr(T* p) noexcept {
@@ -131,8 +144,8 @@ public:
 		return *this;
 	}
 
-	shared_ptr& operator=(T* unique) noexcept {
-		shared_ptr temp(std::move(unique));
+	shared_ptr& operator=(T* ptr) noexcept {
+		shared_ptr temp(std::move(ptr));
 		this->swap(temp);
 		return *this;
 	}
@@ -190,8 +203,8 @@ public:
 		return *this;
 	}
 
-	shared_ptr& operator=(T* unique) noexcept {
-		shared_ptr temp(std::move(unique));
+	shared_ptr& operator=(T* ptr) noexcept {
+		shared_ptr temp(std::move(ptr));
 		this->swap(temp);
 		return *this;
 	}
