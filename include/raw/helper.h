@@ -71,7 +71,8 @@ template<typename T, typename... Args>
  * @brief Creates a shared_ptr that manages a single object.
  * @param args Constructor arguments for the new object.
  */
-shared_ptr<T> make_shared(Args&&... args) {
+std::enable_if_t<!std::is_array_v<T>, raw::shared_ptr<T>> make_shared(Args&&... args) {
+	// Allocate a block of memory that can hold both the object and the hub
 	std::byte* raw_block =
 		static_cast<std::byte*>(std::aligned_alloc(alignof(combined<T>), sizeof(combined<T>)));
 	if (!raw_block) {
@@ -80,13 +81,46 @@ shared_ptr<T> make_shared(Args&&... args) {
 	T*	 constructed_ptr = nullptr;
 	hub* constructed_hub = nullptr;
 	try {
+		// Try constructing the object and the hub in the allocated memory with proper alignment
 		constructed_ptr =
 			new (raw_block + offsetof(combined<T>, ptr)) T(std::forward<Args>(args)...);
 		constructed_hub = new (raw_block + offsetof(combined<T>, hub_ptr))
 			hub(constructed_ptr, raw_block, &destroy_make_shared_object<T>,
 				deallocate_make_shared_block);
 	} catch (const std::exception& e) {
-		if (constructed_ptr) {
+		// If construction fails, clean up constructed object and then free the memory
+		if (constructed_ptr != nullptr) {
+			constructed_ptr->~T();
+		}
+		std::free(raw_block);
+		throw;
+	}
+
+	return shared_ptr<T>(constructed_ptr, constructed_hub);
+}
+
+template<typename T, typename... Args>
+/**
+ * @brief Creates a shared_ptr that manages a static array.
+ * @param size size of the array.
+ */
+std::enable_if_t<std::is_array_v<T>, shared_ptr<T>> make_shared(size_t size) {
+	// Allocate a block of memory that can hold both the array and the hub
+	std::byte* raw_block =
+		static_cast<std::byte*>(std::aligned_alloc(alignof(combined<T>), sizeof(combined<T>)));
+	if (!raw_block) {
+		throw std::bad_alloc();
+	}
+	T*	 constructed_ptr = nullptr;
+	hub* constructed_hub = nullptr;
+	try {
+		// Try constructing the array and the hub in the allocated memory with proper alignment
+		constructed_ptr = new (raw_block + offsetof(combined<T>, ptr)) T[size]();
+		constructed_hub = new (raw_block + offsetof(combined<T>, hub_ptr))
+			hub(constructed_ptr, raw_block, &delete_array_object<T>, deallocate_make_shared_block);
+	} catch (const std::exception& e) {
+		// If construction fails, clean up constructed object and then free the memory
+		if (constructed_ptr != nullptr) {
 			constructed_ptr->~T();
 		}
 		std::free(raw_block);

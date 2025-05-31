@@ -13,7 +13,7 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     add_compile_options(/W4)
 endif()
 
-file(GLOB_RECURSE SOURCES src/*.c src/*.cpp tests/*.c tests/*.cpp tests/src/*.c tests/src/*.cpp)
+file(GLOB_RECURSE SOURCES src/*.c src/*.cpp tests/src/*.c tests/src/*.cpp)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 

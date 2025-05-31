@@ -40,6 +40,36 @@ public:
 	T* operator->() const noexcept {
 		return ptr;
 	}
+
+	bool operator==(const smart_ptr_base& other) const noexcept {
+		return ptr == other.ptr;
+	}
+
+	bool operator!=(const smart_ptr_base& other) const noexcept {
+		return ptr != other.ptr;
+	}
+
+	bool operator>(const smart_ptr_base& other) const noexcept {
+		return ptr > other.ptr;
+	}
+
+	bool operator<(const smart_ptr_base& other) const noexcept {
+		return ptr < other.ptr;
+	}
+
+	bool operator>=(const smart_ptr_base& other) const noexcept {
+		return ptr >= other.ptr;
+	}
+
+	bool operator<=(const smart_ptr_base& other) const noexcept {
+		return ptr <= other.ptr;
+	}
+
+	std::ostream& operator<<(std::ostream& os) const {
+		os << (ptr ? "Address=" + std::to_string(reinterpret_cast<uintptr_t>(ptr)) : "Null pointer")
+		   << ": " << (!ptr ? "null" : *ptr);
+		return os;
+	}
 };
 
 template<typename T>
