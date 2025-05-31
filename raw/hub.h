@@ -36,17 +36,16 @@ public:
 		  obj_size(size) {}
 	~hub() = default;
 
-	void increment_use_count() noexcept {
-		use_count++;
+	inline void increment_use_count() noexcept {
+		use_count.fetch_add(1, std::memory_order_relaxed);
 	}
-	void decrement_use_count() noexcept {
-		use_count--;
-		if (use_count == 0) {
+	inline void decrement_use_count() noexcept {
+		if (use_count.fetch_sub(1, std::memory_order_acq_rel) == 1) {
 			if (destroy_obj_func) {
 				destroy_obj_func(managed_object_ptr, obj_size);
 				managed_object_ptr = nullptr;
 			}
-			if (weak_count == 0) {
+			if (weak_count.load(std::memory_order_acquire) == 0) {
 				if (deallocate_mem_func) {
 					deallocate_mem_func(this, allocated_base_block);
 				}
@@ -54,19 +53,18 @@ public:
 		}
 	}
 
-	void increment_weak_count() noexcept {
-		weak_count++;
+	inline void increment_weak_count() noexcept {
+		weak_count.fetch_add(1, std::memory_order_relaxed);
 	}
-	void decrement_weak_count() noexcept {
-		weak_count--;
-		if (use_count == 0 && weak_count == 0) {
+	inline void decrement_weak_count() noexcept {
+		if (weak_count.fetch_sub(1, std::memory_order_acq_rel) == 1) {
 			if (deallocate_mem_func) {
 				deallocate_mem_func(this, allocated_base_block);
 			}
 		}
 	}
 
-	void set_managed_object_ptr(void* obj_ptr) noexcept {
+	inline void set_managed_object_ptr(void* obj_ptr) noexcept {
 		managed_object_ptr = obj_ptr;
 	}
 };
