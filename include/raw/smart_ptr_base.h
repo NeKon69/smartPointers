@@ -25,43 +25,43 @@ public:
 		ptr = p;
 	}
 
-	explicit operator bool() const noexcept {
+	inline explicit operator bool() const noexcept {
 		return ptr != nullptr;
 	}
 
-	T* get() const noexcept {
+	inline T* get() const noexcept {
 		return ptr;
 	}
 
-	T& operator*() const noexcept {
+	inline T& operator*() const noexcept {
 		return *ptr;
 	}
 
-	T* operator->() const noexcept {
+	inline T* operator->() const noexcept {
 		return ptr;
 	}
 
-	bool operator==(const smart_ptr_base& other) const noexcept {
+	inline bool operator==(const smart_ptr_base& other) const noexcept {
 		return ptr == other.ptr;
 	}
 
-	bool operator!=(const smart_ptr_base& other) const noexcept {
+	inline bool operator!=(const smart_ptr_base& other) const noexcept {
 		return ptr != other.ptr;
 	}
 
-	bool operator>(const smart_ptr_base& other) const noexcept {
+	inline bool operator>(const smart_ptr_base& other) const noexcept {
 		return ptr > other.ptr;
 	}
 
-	bool operator<(const smart_ptr_base& other) const noexcept {
+	inline bool operator<(const smart_ptr_base& other) const noexcept {
 		return ptr < other.ptr;
 	}
 
-	bool operator>=(const smart_ptr_base& other) const noexcept {
+	inline bool operator>=(const smart_ptr_base& other) const noexcept {
 		return ptr >= other.ptr;
 	}
 
-	bool operator<=(const smart_ptr_base& other) const noexcept {
+	inline bool operator<=(const smart_ptr_base& other) const noexcept {
 		return ptr <= other.ptr;
 	}
 
@@ -87,16 +87,40 @@ public:
 		ptr = p;
 	}
 
-	explicit operator bool() const noexcept {
+	inline explicit operator bool() const noexcept {
 		return ptr != nullptr;
 	}
 
-	T* get() const noexcept {
+	inline T* get() const noexcept {
 		return ptr;
 	}
 
-	T& operator[](size_t index) const noexcept {
+	inline T& operator[](size_t index) const noexcept {
 		return ptr[index];
+	}
+
+	inline bool operator==(const smart_ptr_base& other) const noexcept {
+		return ptr == other.ptr;
+	}
+
+	inline bool operator!=(const smart_ptr_base& other) const noexcept {
+		return ptr != other.ptr;
+	}
+
+	inline bool operator>(const smart_ptr_base& other) const noexcept {
+		return ptr > other.ptr;
+	}
+
+	inline bool operator<(const smart_ptr_base& other) const noexcept {
+		return ptr < other.ptr;
+	}
+
+	inline bool operator>=(const smart_ptr_base& other) const noexcept {
+		return ptr >= other.ptr;
+	}
+
+	inline bool operator<=(const smart_ptr_base& other) const noexcept {
+		return ptr <= other.ptr;
 	}
 };
 } // namespace raw

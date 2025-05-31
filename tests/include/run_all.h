@@ -5,6 +5,7 @@
 #ifndef SMARTPOINTERS_RUN_ALL_TESTS_H
 #define SMARTPOINTERS_RUN_ALL_TESTS_H
 
+#include "benchmark_shared.h"
 #include "benchmark_unique.h"
 #include "unit_shared.h"
 #include "unit_unique.h"
@@ -16,7 +17,8 @@ void run_all() {
 	run_all_shared_tests();
 	std::cout
 		<< "------------------------------------------- Unit tests completed -------------------------------------------\n";
-	performance_comparison_test();
+	performance_comparison_unique_test();
+	performance_comparison_shared_test();
 	std::cout
 		<< "------------------------------------------- Performance tests completed -------------------------------------------\n";
 }

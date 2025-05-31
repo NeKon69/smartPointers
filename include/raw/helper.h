@@ -27,7 +27,8 @@ static void delete_single_object(void* obj_ptr, size_t) {
 
 template<typename T>
 static void delete_array_object(void* obj_ptr, size_t) {
-	delete[] static_cast<T*>(obj_ptr);
+	using element_type = std::remove_extent_t<T>;
+	delete[] static_cast<element_type*>(obj_ptr);
 }
 
 template<typename T>
@@ -37,8 +38,12 @@ static void destroy_make_shared_object(void* obj_ptr, size_t) {
 
 template<typename T>
 static void destroy_make_shared_array(void* obj_ptr, size_t size) {
+	using element_type = std::remove_extent_t<T>;
+
+	element_type* array_base_ptr = static_cast<element_type*>(obj_ptr);
+
 	for (size_t i = 0; i < size; ++i) {
-		static_cast<T*>(obj_ptr)[i].~T();
+		array_base_ptr[i].~element_type();
 	}
 }
 

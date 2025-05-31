@@ -6,7 +6,6 @@
 #define SMARTPOINTERS_SHARED_PTR_H
 
 #include "helper.h"
-#include "hub.h"
 #include "smart_ptr_base.h"
 
 namespace raw {
@@ -21,7 +20,8 @@ public:
 
 	shared_ptr_base() noexcept = default;
 
-	explicit shared_ptr_base(nullptr_t) noexcept : smart_ptr_base<T>(nullptr), hub_ptr(nullptr) {}
+	inline explicit shared_ptr_base(nullptr_t) noexcept
+		: smart_ptr_base<T>(nullptr), hub_ptr(nullptr) {}
 
 	shared_ptr_base(const shared_ptr_base& other) noexcept {
 		this->ptr = other.ptr;
@@ -69,11 +69,11 @@ public:
 		std::swap(hub_ptr, other.hub_ptr);
 	}
 
-	[[nodiscard]] size_t use_count() const noexcept {
-		return hub_ptr ? hub_ptr->use_count.load() : 0;
+	[[nodiscard]] inline size_t use_count() const noexcept {
+		return hub_ptr ? hub_ptr->use_count.load(std::memory_order::acquire) : 0;
 	}
 
-	[[nodiscard]] bool unique() const noexcept {
+	[[nodiscard]] inline bool unique() const noexcept {
 		return use_count() == 1;
 	}
 
@@ -105,12 +105,12 @@ public:
 		}
 	}
 
-	explicit shared_ptr(T* p, hub* hub) noexcept {
+	inline explicit shared_ptr(T* p, hub* hub) noexcept {
 		this->ptr	  = p;
 		this->hub_ptr = hub;
 	}
 
-	explicit shared_ptr(unique_ptr<T>&& unique) noexcept {
+	inline explicit shared_ptr(unique_ptr<T>&& unique) noexcept {
 		this->ptr	  = unique.release();
 		this->hub_ptr = new hub(this->ptr, nullptr, &raw::delete_single_object<T>,
 								&raw::deallocate_hub_for_new_single);
@@ -137,7 +137,7 @@ public:
 		return *this;
 	}
 
-	void reset(T* p = nullptr) noexcept {
+	inline void reset(T* p = nullptr) noexcept {
 		shared_ptr<T> temp(p);
 		this->swap(temp);
 	}
@@ -150,22 +150,27 @@ public:
 	using shared_ptr_base<T[]>::shared_ptr_base;
 
 	explicit shared_ptr(T* p) noexcept {
-		this->ptr	  = p;
-		this->hub_ptr = new hub(this->ptr, nullptr, &raw::delete_array_object<T>,
-								&raw::deallocate_hub_for_new_array);
+		if (p != nullptr) {
+			this->ptr	  = p;
+			this->hub_ptr = new hub(this->ptr, nullptr, &raw::delete_array_object<T>,
+									&raw::deallocate_hub_for_new_array);
+		} else {
+			this->ptr	  = nullptr;
+			this->hub_ptr = nullptr;
+		}
 	}
 
-	explicit shared_ptr(weak_ptr<T[]>& weak) noexcept {
+	inline explicit shared_ptr(weak_ptr<T[]>& weak) noexcept {
 		*this = weak.lock();
 	}
 
-	explicit shared_ptr(unique_ptr<T[]>&& unique) noexcept {
+	inline explicit shared_ptr(unique_ptr<T[]>&& unique) noexcept {
 		this->ptr	  = unique.release();
 		this->hub_ptr = new hub(this->ptr, nullptr, &raw::delete_array_object<T>,
 								&raw::deallocate_hub_for_new_array);
 	}
 
-	explicit shared_ptr(T* p, hub* hub) noexcept {
+	inline explicit shared_ptr(T* p, hub* hub) noexcept {
 		this->ptr	  = p;
 		this->hub_ptr = hub;
 	}
@@ -191,7 +196,7 @@ public:
 		return *this;
 	}
 
-	void reset(T* p = nullptr) noexcept {
+	inline void reset(T* p = nullptr) noexcept {
 		shared_ptr<T[]> temp(p);
 		this->swap(temp);
 	}

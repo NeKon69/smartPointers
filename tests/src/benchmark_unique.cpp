@@ -281,7 +281,7 @@ long long run_combined_stress_impl(bool use_raw, int iterations, int max_pointer
 	return std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
 }
 
-void performance_comparison_test() {
+void performance_comparison_unique_test() {
 	std::cout << "\n--- Performance Comparison Test: raw::unique_ptr vs std::unique_ptr ---\n";
 
 	const int NUM_TRIALS	= 20;

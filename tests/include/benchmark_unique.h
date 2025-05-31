@@ -14,12 +14,6 @@
 
 #include "common_test_utils.h"
 
-struct TestResults {
-	long long std_min_us, std_max_us, std_avg_us;
-	long long raw_min_us, raw_max_us, raw_avg_us;
-	double	  raw_vs_std_avg_percent;
-};
-
 void		calculate_stats(const std::vector<long long>& durations, long long& min_val,
 							long long& max_val, long long& avg_val);
 void		print_table_header();
@@ -29,7 +23,7 @@ TestResults run_benchmark_scenario(const std::string& scenario_name, int num_tri
 								   int operations_per_trial, std::function<long long(int)> std_func,
 								   std::function<long long(int)> raw_func);
 long long	run_combined_stress_impl(bool use_raw, int iterations, int max_pointers_in_pool);
-void		performance_comparison_test();
+void		performance_comparison_unique_test();
 
 template<typename UniquePtrType, typename MakeUniqueFunc>
 long long run_single_obj_creation_test(int operations_per_trial, MakeUniqueFunc make_unique_func) {
