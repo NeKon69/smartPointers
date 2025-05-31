@@ -24,7 +24,7 @@ public:
 
 	// Конструктор hub'а
 	hub(void* obj_ptr, std::byte* base_block, void (*destroyer)(void*),
-		void (*deallocator)(void*, void*))
+		void (*deallocator)(void*, void*)) noexcept
 		: use_count(1),
 		  weak_count(0),
 		  managed_object_ptr(obj_ptr),
@@ -33,10 +33,10 @@ public:
 		  deallocate_mem_func(deallocator) {}
 	~hub() = default;
 
-	void increment_use_count() {
+	void increment_use_count() noexcept {
 		use_count++;
 	}
-	void decrement_use_count() {
+	void decrement_use_count() noexcept {
 		use_count--;
 		if (use_count == 0) {
 			if (destroy_obj_func) {
@@ -51,10 +51,10 @@ public:
 		}
 	}
 
-	void increment_weak_count() {
+	void increment_weak_count() noexcept {
 		weak_count++;
 	}
-	void decrement_weak_count() {
+	void decrement_weak_count() noexcept {
 		weak_count--;
 		if (use_count == 0 && weak_count == 0) {
 			if (deallocate_mem_func) {
