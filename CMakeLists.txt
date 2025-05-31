@@ -19,6 +19,4 @@ file(GLOB_RECURSE SOURCES src/*.c src/*.cpp tests/src/*.c tests/src/*.cpp)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
-target_link_libraries(smartPointers PRIVATE -lasan)
-
 target_include_directories(${PROJECT_NAME} PRIVATE include)

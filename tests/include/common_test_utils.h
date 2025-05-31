@@ -12,9 +12,6 @@
 #include <memory>
 #include <string>
 
-#include "../../include/raw/helper.h"
-#include "../../include/raw/unique_ptr.h"
-
 extern int s_active_test_objects;
 
 class TestObject {
@@ -43,7 +40,6 @@ public:
 		return *this;
 	}
 
-	// КОНСТРУКТОР ПЕРЕМЕЩЕНИЯ (как у вас):
 	TestObject(TestObject&& other) noexcept : id(other.id) {
 		other.id = -1;
 	}

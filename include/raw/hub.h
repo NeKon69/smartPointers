@@ -6,7 +6,10 @@
 #define SMARTPOINTERS_HUB_H
 
 #include <atomic>
+#include <cstddef>
 #include <cstdio>
+#include <memory>
+#include <stdexcept>
 
 #include "fwd.h"
 
@@ -53,11 +56,24 @@ public:
 		}
 	}
 
+	inline bool try_increment_use_count_if_not_zero() {
+		size_t current_count = use_count.load(std::memory_order_relaxed);
+		while (current_count > 0) {
+			if (use_count.compare_exchange_weak(current_count, current_count + 1,
+												std::memory_order_acquire,
+												std::memory_order_relaxed)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	inline void increment_weak_count() noexcept {
 		weak_count.fetch_add(1, std::memory_order_relaxed);
 	}
 	inline void decrement_weak_count() noexcept {
-		if (weak_count.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+		if (weak_count.fetch_sub(1, std::memory_order_acq_rel) == 1 &&
+			use_count.load(std::memory_order_acquire) == 0) {
 			if (deallocate_mem_func) {
 				deallocate_mem_func(this, allocated_base_block);
 			}

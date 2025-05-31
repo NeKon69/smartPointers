@@ -12,6 +12,7 @@
 #include <random>
 #include <vector>
 
+#include "../../include/raw_memory.h"
 #include "common_test_utils.h"
 
 void		calculate_stats(const std::vector<long long>& durations, long long& min_val,

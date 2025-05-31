@@ -6,8 +6,6 @@
 
 #include <iostream>
 
-#include "../../include/raw/helper.h"
-
 long long run_combined_stress_impl_shared(bool use_raw, int iterations, int max_pointers_in_pool) {
 	std::random_device				rd;
 	std::mt19937					gen(rd());
@@ -236,7 +234,7 @@ void performance_comparison_shared_test() {
 
 	const int NUM_TRIALS		= 20;
 	const int OPS_PER_TRIAL		= 1000000;
-	const int STRESS_ITERATIONS = 100000;
+	const int STRESS_ITERATIONS = 1000000;
 	const int POOL_SIZE			= 100;
 
 	print_table_header();

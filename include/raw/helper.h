@@ -5,6 +5,8 @@
 #ifndef SMARTPOINTERS_HELPER_H
 #define SMARTPOINTERS_HELPER_H
 
+#include <algorithm>
+#include <cstddef>
 #include <exception>
 #include <utility>
 

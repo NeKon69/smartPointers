@@ -10,6 +10,7 @@
 #include <random>
 #include <vector>
 
+#include "../../include/raw_memory.h"
 #include "common_test_utils.h"
 
 template<typename T>
