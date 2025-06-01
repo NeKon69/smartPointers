@@ -23,8 +23,7 @@ public:
 
 	weak_ptr_base() noexcept = default;
 
-	inline explicit weak_ptr_base(nullptr_t) noexcept
-		: smart_ptr_base<T>(nullptr), hub_ptr(nullptr) {}
+	weak_ptr_base(std::nullptr_t) noexcept : smart_ptr_base<T>(nullptr), hub_ptr(nullptr) {}
 
 	weak_ptr_base(const weak_ptr_base& other) noexcept {
 		this->ptr = other.ptr;
@@ -123,7 +122,7 @@ public:
 
 	weak_ptr() noexcept = default;
 
-	inline explicit weak_ptr(nullptr_t) noexcept : weak_ptr_base<T>(nullptr) {}
+	weak_ptr(std::nullptr_t) noexcept : weak_ptr_base<T>(nullptr) {}
 
 	weak_ptr(const shared_ptr<T>& shared) noexcept {
 		this->ptr	  = shared.get();
@@ -153,7 +152,7 @@ public:
 
 	weak_ptr() noexcept = default;
 
-	inline explicit weak_ptr(nullptr_t) noexcept : weak_ptr_base<T[]>(nullptr) {}
+	weak_ptr(std::nullptr_t) noexcept : weak_ptr_base<T[]>(nullptr) {}
 
 	weak_ptr(const shared_ptr<T[]>& shared) noexcept {
 		this->ptr	  = shared.get();

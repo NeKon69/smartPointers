@@ -19,7 +19,7 @@ protected:
 
 public:
 	constexpr smart_ptr_base() = default;
-	explicit smart_ptr_base(nullptr_t) noexcept : ptr(nullptr) {}
+	explicit smart_ptr_base(std::nullptr_t) noexcept : ptr(nullptr) {}
 
 	explicit smart_ptr_base(T* p) noexcept {
 		ptr = p;
@@ -81,7 +81,7 @@ protected:
 
 public:
 	constexpr smart_ptr_base() = default;
-	explicit smart_ptr_base(nullptr_t) noexcept : ptr(nullptr) {}
+	explicit smart_ptr_base(std::nullptr_t) noexcept : ptr(nullptr) {}
 
 	explicit smart_ptr_base(T* p) noexcept {
 		ptr = p;
