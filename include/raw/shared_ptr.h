@@ -21,7 +21,7 @@ public:
 
 	shared_ptr_base() noexcept = default;
 
-	inline explicit shared_ptr_base(nullptr_t) noexcept
+	inline explicit shared_ptr_base(std::nullptr_t) noexcept
 		: smart_ptr_base<T>(nullptr), hub_ptr(nullptr) {}
 
 	shared_ptr_base(const shared_ptr_base& other) noexcept {
@@ -135,7 +135,7 @@ public:
 		return *this;
 	}
 
-	shared_ptr& operator=(nullptr_t) noexcept {
+	shared_ptr& operator=(std::nullptr_t) noexcept {
 		if (this->hub_ptr) {
 			this->hub_ptr->decrement_use_count();
 			this->hub_ptr = nullptr;
@@ -194,7 +194,7 @@ public:
 		return *this;
 	}
 
-	shared_ptr& operator=(nullptr_t) noexcept {
+	shared_ptr& operator=(std::nullptr_t) noexcept {
 		if (this->hub_ptr) {
 			this->hub_ptr->decrement_use_count();
 			this->hub_ptr = nullptr;

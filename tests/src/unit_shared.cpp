@@ -76,11 +76,11 @@ void test_shared_single_object_construction() {
 
 	{
 		raw::shared_ptr<TestObject> sptr5(nullptr);
-		print_shared_ptr_state("sptr5 (nullptr_t)", sptr5);
+		print_shared_ptr_state("sptr5 (std::nullptr_t)", sptr5);
 		assert(!sptr5 && sptr5.use_count() == 0);
-		verify_active_objects("sptr5 nullptr_t construction", initial_active_objects);
+		verify_active_objects("sptr5 std::nullptr_t construction", initial_active_objects);
 	}
-	verify_active_objects("sptr5 nullptr_t destruction", initial_active_objects);
+	verify_active_objects("sptr5 std::nullptr_t destruction", initial_active_objects);
 }
 
 void test_shared_single_object_copy_move_semantics() {

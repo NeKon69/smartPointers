@@ -2,10 +2,6 @@
 // Created by progamers on 5/31/25.
 //
 
-//
-// Created by progamers on 5/31/25.
-//
-
 #include "../include/benchmark_weak.h"
 
 #include <iostream>
@@ -13,10 +9,11 @@
 long long run_combined_stress_impl_weak(bool use_raw, int iterations, int max_pointers_in_pool) {
 	std::random_device				rd;
 	std::mt19937					gen(rd());
-	std::uniform_int_distribution<> dist_op(0, 10);
+	std::uniform_int_distribution<> dist_op(0, 12);
 	std::uniform_int_distribution<> dist_idx(0, max_pointers_in_pool - 1);
 	std::uniform_int_distribution<> dist_val(0, 9999);
 	std::uniform_int_distribution<> dist_array_size_gen(1, 10);
+	std::uniform_int_distribution<> dist_reset_chance(0, 4);
 
 	std::vector<std::shared_ptr<TestObject>>   std_shared_single_ptrs;
 	std::vector<std::weak_ptr<TestObject>>	   std_weak_single_ptrs;
@@ -111,16 +108,36 @@ long long run_combined_stress_impl_weak(bool use_raw, int iterations, int max_po
 				}
 			} break;
 			case 9:
-				if (raw_shared_single_ptrs[idx1]) {
+				if (raw_shared_single_ptrs[idx1] && dist_reset_chance(gen) < 2) {
 					raw_shared_single_ptrs[idx1].reset();
 				}
 				break;
 			case 10:
-				if (raw_shared_array_ptrs[idx1]) {
+				if (raw_shared_array_ptrs[idx1] && dist_reset_chance(gen) < 2) {
 					raw_shared_array_ptrs[idx1].reset();
 					array_actual_sizes[idx1] = 0;
 				}
 				break;
+			case 11: {
+				raw::shared_ptr<TestObject> temp_sp = raw::make_shared<TestObject>(dist_val(gen));
+				raw_weak_single_ptrs[idx1]			= temp_sp;
+				if (dist_reset_chance(gen) < 1) {
+					temp_sp.reset();
+				}
+				volatile bool exp_after_reset = raw_weak_single_ptrs[idx1].expired();
+				(void)exp_after_reset;
+			} break;
+			case 12: {
+				raw_weak_single_ptrs[idx1] = raw_shared_single_ptrs[idx2];
+				if (dist_reset_chance(gen) < 2) {
+					raw_shared_single_ptrs[idx2].reset();
+				}
+				raw::shared_ptr<TestObject> locked_after_reset = raw_weak_single_ptrs[idx1].lock();
+				if (locked_after_reset) {
+					volatile int id = locked_after_reset->id;
+					(void)id;
+				}
+			} break;
 			default:
 				break;
 			}
@@ -166,16 +183,36 @@ long long run_combined_stress_impl_weak(bool use_raw, int iterations, int max_po
 				}
 			} break;
 			case 9:
-				if (std_shared_single_ptrs[idx1]) {
+				if (std_shared_single_ptrs[idx1] && dist_reset_chance(gen) < 2) {
 					std_shared_single_ptrs[idx1].reset();
 				}
 				break;
 			case 10:
-				if (std_shared_array_ptrs[idx1]) {
+				if (std_shared_array_ptrs[idx1] && dist_reset_chance(gen) < 2) {
 					std_shared_array_ptrs[idx1].reset();
 					array_actual_sizes[idx1] = 0;
 				}
 				break;
+			case 11: {
+				std::shared_ptr<TestObject> temp_sp = std::make_shared<TestObject>(dist_val(gen));
+				std_weak_single_ptrs[idx1]			= temp_sp;
+				if (dist_reset_chance(gen) < 1) {
+					temp_sp.reset();
+				}
+				volatile bool exp_after_reset = std_weak_single_ptrs[idx1].expired();
+				(void)exp_after_reset;
+			} break;
+			case 12: {
+				std_weak_single_ptrs[idx1] = std_shared_single_ptrs[idx2];
+				if (dist_reset_chance(gen) < 2) {
+					std_shared_single_ptrs[idx2].reset();
+				}
+				std::shared_ptr<TestObject> locked_after_reset = std_weak_single_ptrs[idx1].lock();
+				if (locked_after_reset) {
+					volatile int id = locked_after_reset->id;
+					(void)id;
+				}
+			} break;
 			default:
 				break;
 			}

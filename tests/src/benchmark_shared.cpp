@@ -1,5 +1,5 @@
 //
-// created by progamers on 5/31/25.
+// Created by progamers on 5/31/25.
 //
 
 #include "../include/benchmark_shared.h"
@@ -9,10 +9,11 @@
 long long run_combined_stress_impl_shared(bool use_raw, int iterations, int max_pointers_in_pool) {
 	std::random_device				rd;
 	std::mt19937					gen(rd());
-	std::uniform_int_distribution<> dist_op(0, 15);
+	std::uniform_int_distribution<> dist_op(0, 16);
 	std::uniform_int_distribution<> dist_idx(0, max_pointers_in_pool - 1);
 	std::uniform_int_distribution<> dist_val(0, 9999);
 	std::uniform_int_distribution<> dist_array_size_gen(1, 10);
+	std::uniform_int_distribution<> dist_extra_op_chance(0, 9);
 
 	std::vector<std::shared_ptr<TestObject>>   std_single_ptrs;
 	std::vector<std::shared_ptr<TestObject[]>> std_array_ptrs;
@@ -40,13 +41,25 @@ long long run_combined_stress_impl_shared(bool use_raw, int iterations, int max_
 			switch (op) {
 			case 0:
 				raw_single_ptrs[idx1] = raw::make_shared<TestObject>(dist_val(gen));
+				if (raw_single_ptrs[idx1] && dist_extra_op_chance(gen) < 1) {
+					volatile size_t count = raw_single_ptrs[idx1].use_count();
+					(void)count;
+				}
 				break;
 			case 1:
 				raw_single_ptrs[idx1].reset();
+				if (dist_extra_op_chance(gen) < 1) {
+					volatile bool is_null = (raw_single_ptrs[idx1].get() == nullptr);
+					(void)is_null;
+				}
 				break;
 			case 2:
 				if (raw_single_ptrs[idx2]) {
 					raw_single_ptrs[idx1] = raw_single_ptrs[idx2];
+					if (dist_extra_op_chance(gen) < 1) {
+						volatile size_t count = raw_single_ptrs[idx1].use_count();
+						(void)count;
+					}
 				} else {
 					raw_single_ptrs[idx1].reset();
 				}
@@ -54,6 +67,10 @@ long long run_combined_stress_impl_shared(bool use_raw, int iterations, int max_
 			case 3:
 				if (raw_single_ptrs[idx2]) {
 					raw_single_ptrs[idx1] = std::move(raw_single_ptrs[idx2]);
+					if (dist_extra_op_chance(gen) < 1) {
+						volatile bool was_moved_from = (raw_single_ptrs[idx2].get() == nullptr);
+						(void)was_moved_from;
+					}
 				} else {
 					raw_single_ptrs[idx1].reset();
 				}
@@ -83,15 +100,28 @@ long long run_combined_stress_impl_shared(bool use_raw, int iterations, int max_
 				size_t current_array_size = dist_array_size_gen(gen);
 				raw_array_ptrs[idx1]	  = raw::make_shared<TestObject[]>(current_array_size);
 				array_actual_sizes[idx1]  = current_array_size;
+				if (raw_array_ptrs[idx1] && current_array_size > 0 &&
+					dist_extra_op_chance(gen) < 1) {
+					volatile int dummy_val = raw_array_ptrs[idx1][0].id;
+					(void)dummy_val;
+				}
 			} break;
 			case 10:
 				raw_array_ptrs[idx1].reset();
 				array_actual_sizes[idx1] = 0;
+				if (dist_extra_op_chance(gen) < 1) {
+					volatile bool is_null = (raw_array_ptrs[idx1].get() == nullptr);
+					(void)is_null;
+				}
 				break;
 			case 11:
 				if (raw_array_ptrs[idx2]) {
 					raw_array_ptrs[idx1]	 = raw_array_ptrs[idx2];
 					array_actual_sizes[idx1] = array_actual_sizes[idx2];
+					if (dist_extra_op_chance(gen) < 1) {
+						volatile size_t count = raw_array_ptrs[idx1].use_count();
+						(void)count;
+					}
 				} else {
 					raw_array_ptrs[idx1].reset();
 					array_actual_sizes[idx1] = 0;
@@ -101,6 +131,10 @@ long long run_combined_stress_impl_shared(bool use_raw, int iterations, int max_
 				raw_array_ptrs[idx1]	 = std::move(raw_array_ptrs[idx2]);
 				array_actual_sizes[idx1] = array_actual_sizes[idx2];
 				array_actual_sizes[idx2] = 0;
+				if (dist_extra_op_chance(gen) < 1) {
+					volatile bool was_moved_from = (raw_array_ptrs[idx2].get() == nullptr);
+					(void)was_moved_from;
+				}
 				break;
 			case 13:
 				raw_array_ptrs[idx1].swap(raw_array_ptrs[idx2]);
@@ -118,28 +152,42 @@ long long run_combined_stress_impl_shared(bool use_raw, int iterations, int max_
 					(void)is_unique;
 				}
 				break;
+			case 16: {
+				int access_idx = dist_idx(gen);
+				if (raw_array_ptrs[access_idx] && array_actual_sizes[access_idx] > 0) {
+					size_t elem_idx = std::uniform_int_distribution<size_t>(
+						0, array_actual_sizes[access_idx] - 1)(gen);
+					raw_array_ptrs[access_idx][elem_idx].id = dist_val(gen);
+					volatile int read_val = raw_array_ptrs[access_idx][elem_idx].id;
+					(void)read_val;
+				}
+			} break;
 			default:
 				break;
-			}
-
-			if (raw_array_ptrs[idx1] && array_actual_sizes[idx1] > 0) {
-				size_t elem_idx =
-					std::uniform_int_distribution<size_t>(0, array_actual_sizes[idx1] - 1)(gen);
-				raw_array_ptrs[idx1][elem_idx].id = dist_val(gen);
-				volatile int read_val			  = raw_array_ptrs[idx1][elem_idx].id;
-				(void)read_val;
 			}
 		} else {
 			switch (op) {
 			case 0:
 				std_single_ptrs[idx1] = std::make_shared<TestObject>(dist_val(gen));
+				if (std_single_ptrs[idx1] && dist_extra_op_chance(gen) < 1) {
+					volatile size_t count = std_single_ptrs[idx1].use_count();
+					(void)count;
+				}
 				break;
 			case 1:
 				std_single_ptrs[idx1].reset();
+				if (dist_extra_op_chance(gen) < 1) {
+					volatile bool is_null = (std_single_ptrs[idx1].get() == nullptr);
+					(void)is_null;
+				}
 				break;
 			case 2:
 				if (std_single_ptrs[idx2]) {
 					std_single_ptrs[idx1] = std_single_ptrs[idx2];
+					if (dist_extra_op_chance(gen) < 1) {
+						volatile size_t count = std_single_ptrs[idx1].use_count();
+						(void)count;
+					}
 				} else {
 					std_single_ptrs[idx1].reset();
 				}
@@ -147,6 +195,10 @@ long long run_combined_stress_impl_shared(bool use_raw, int iterations, int max_
 			case 3:
 				if (std_single_ptrs[idx2]) {
 					std_single_ptrs[idx1] = std::move(std_single_ptrs[idx2]);
+					if (dist_extra_op_chance(gen) < 1) {
+						volatile bool was_moved_from = (std_single_ptrs[idx2].get() == nullptr);
+						(void)was_moved_from;
+					}
 				} else {
 					std_single_ptrs[idx1].reset();
 				}
@@ -176,15 +228,28 @@ long long run_combined_stress_impl_shared(bool use_raw, int iterations, int max_
 				size_t current_array_size = dist_array_size_gen(gen);
 				std_array_ptrs[idx1]	  = std::make_shared<TestObject[]>(current_array_size);
 				array_actual_sizes[idx1]  = current_array_size;
+				if (std_array_ptrs[idx1] && current_array_size > 0 &&
+					dist_extra_op_chance(gen) < 1) {
+					volatile int dummy_val = std_array_ptrs[idx1][0].id;
+					(void)dummy_val;
+				}
 			} break;
 			case 10:
 				std_array_ptrs[idx1].reset();
 				array_actual_sizes[idx1] = 0;
+				if (dist_extra_op_chance(gen) < 1) {
+					volatile bool is_null = (std_array_ptrs[idx1].get() == nullptr);
+					(void)is_null;
+				}
 				break;
 			case 11:
 				if (std_array_ptrs[idx2]) {
 					std_array_ptrs[idx1]	 = std_array_ptrs[idx2];
 					array_actual_sizes[idx1] = array_actual_sizes[idx2];
+					if (dist_extra_op_chance(gen) < 1) {
+						volatile size_t count = std_array_ptrs[idx1].use_count();
+						(void)count;
+					}
 				} else {
 					std_array_ptrs[idx1].reset();
 					array_actual_sizes[idx1] = 0;
@@ -194,6 +259,10 @@ long long run_combined_stress_impl_shared(bool use_raw, int iterations, int max_
 				std_array_ptrs[idx1]	 = std::move(std_array_ptrs[idx2]);
 				array_actual_sizes[idx1] = array_actual_sizes[idx2];
 				array_actual_sizes[idx2] = 0;
+				if (dist_extra_op_chance(gen) < 1) {
+					volatile bool was_moved_from = (std_array_ptrs[idx2].get() == nullptr);
+					(void)was_moved_from;
+				}
 				break;
 			case 13:
 				std_array_ptrs[idx1].swap(std_array_ptrs[idx2]);
@@ -211,16 +280,18 @@ long long run_combined_stress_impl_shared(bool use_raw, int iterations, int max_
 					(void)is_unique;
 				}
 				break;
+			case 16: {
+				int access_idx = dist_idx(gen);
+				if (std_array_ptrs[access_idx] && array_actual_sizes[access_idx] > 0) {
+					size_t elem_idx = std::uniform_int_distribution<size_t>(
+						0, array_actual_sizes[access_idx] - 1)(gen);
+					std_array_ptrs[access_idx][elem_idx].id = dist_val(gen);
+					volatile int read_val = std_array_ptrs[access_idx][elem_idx].id;
+					(void)read_val;
+				}
+			} break;
 			default:
 				break;
-			}
-
-			if (std_array_ptrs[idx1] && array_actual_sizes[idx1] > 0) {
-				size_t elem_idx =
-					std::uniform_int_distribution<size_t>(0, array_actual_sizes[idx1] - 1)(gen);
-				std_array_ptrs[idx1][elem_idx].id = dist_val(gen);
-				volatile int read_val			  = std_array_ptrs[idx1][elem_idx].id;
-				(void)read_val;
 			}
 		}
 	}

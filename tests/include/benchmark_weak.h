@@ -1,7 +1,3 @@
-//
-// Created by progamers on 5/31/25.
-//
-
 #ifndef SMARTPOINTERS_BENCHMARK_WEAK_H
 #define SMARTPOINTERS_BENCHMARK_WEAK_H
 
@@ -39,9 +35,11 @@ long long run_weak_from_shared_creation_test(int			operations_per_trial,
 
 	auto start = std::chrono::high_resolution_clock::now();
 	for (int j = 0; j < operations_per_trial; ++j) {
-		WeakPtrType	  wp(shared_ptrs[j]);
-		volatile bool expired_val = wp.expired();
-		(void)expired_val;
+		WeakPtrType wp_local(shared_ptrs[j]);
+		if (wp_local.lock()) {
+			volatile int id_val = wp_local.lock()->id;
+			(void)id_val;
+		}
 	}
 	auto end = std::chrono::high_resolution_clock::now();
 	return std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -49,22 +47,15 @@ long long run_weak_from_shared_creation_test(int			operations_per_trial,
 
 template<typename WeakPtrType, typename SharedPtrType, typename MakeSharedFunc>
 long long run_weak_copy_construct_test(int operations_per_trial, MakeSharedFunc make_shared_func) {
-	std::vector<SharedPtrType> shared_ptrs;
-	shared_ptrs.reserve(operations_per_trial);
-	for (int j = 0; j < operations_per_trial; ++j) {
-		shared_ptrs.push_back(make_shared_func(j));
-	}
-	std::vector<WeakPtrType> src_wps;
-	src_wps.reserve(operations_per_trial);
-	for (int j = 0; j < operations_per_trial; ++j) {
-		src_wps.emplace_back(shared_ptrs[j]);
-	}
-	std::vector<WeakPtrType> dest_wps;
-	dest_wps.reserve(operations_per_trial);
-
 	auto start = std::chrono::high_resolution_clock::now();
 	for (int j = 0; j < operations_per_trial; ++j) {
-		dest_wps.emplace_back(src_wps[j]);
+		SharedPtrType sp = make_shared_func(j);
+		WeakPtrType	  src_wp(sp);
+		WeakPtrType	  dest_wp(src_wp);
+		if (dest_wp.lock()) {
+			volatile int dummy = dest_wp.lock()->id;
+			(void)dummy;
+		}
 	}
 	auto end = std::chrono::high_resolution_clock::now();
 	return std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -72,22 +63,15 @@ long long run_weak_copy_construct_test(int operations_per_trial, MakeSharedFunc 
 
 template<typename WeakPtrType, typename SharedPtrType, typename MakeSharedFunc>
 long long run_weak_move_construct_test(int operations_per_trial, MakeSharedFunc make_shared_func) {
-	std::vector<SharedPtrType> shared_ptrs;
-	shared_ptrs.reserve(operations_per_trial);
-	for (int j = 0; j < operations_per_trial; ++j) {
-		shared_ptrs.push_back(make_shared_func(j));
-	}
-	std::vector<WeakPtrType> src_wps;
-	src_wps.reserve(operations_per_trial);
-	for (int j = 0; j < operations_per_trial; ++j) {
-		src_wps.emplace_back(shared_ptrs[j]);
-	}
-	std::vector<WeakPtrType> dest_wps;
-	dest_wps.reserve(operations_per_trial);
-
 	auto start = std::chrono::high_resolution_clock::now();
 	for (int j = 0; j < operations_per_trial; ++j) {
-		dest_wps.emplace_back(std::move(src_wps[j]));
+		SharedPtrType sp = make_shared_func(j);
+		WeakPtrType	  src_wp(sp);
+		WeakPtrType	  dest_wp(std::move(src_wp));
+		if (dest_wp.lock()) {
+			volatile int dummy = dest_wp.lock()->id;
+			(void)dummy;
+		}
 	}
 	auto end = std::chrono::duration_cast<std::chrono::microseconds>(
 				   std::chrono::high_resolution_clock::now() - start)
@@ -97,25 +81,17 @@ long long run_weak_move_construct_test(int operations_per_trial, MakeSharedFunc 
 
 template<typename WeakPtrType, typename SharedPtrType, typename MakeSharedFunc>
 long long run_weak_copy_assign_test(int operations_per_trial, MakeSharedFunc make_shared_func) {
-	std::vector<SharedPtrType> shared_ptrs;
-	shared_ptrs.reserve(operations_per_trial);
-	for (int j = 0; j < operations_per_trial; ++j) {
-		shared_ptrs.push_back(make_shared_func(j));
-	}
-	std::vector<WeakPtrType> src_wps;
-	src_wps.reserve(operations_per_trial);
-	for (int j = 0; j < operations_per_trial; ++j) {
-		src_wps.emplace_back(shared_ptrs[j]);
-	}
-	std::vector<WeakPtrType> dest_wps;
-	dest_wps.reserve(operations_per_trial);
-	for (int j = 0; j < operations_per_trial; ++j) {
-		dest_wps.emplace_back(); // ИСПРАВЛЕНО: используем конструктор по умолчанию
-	}
-
 	auto start = std::chrono::high_resolution_clock::now();
 	for (int j = 0; j < operations_per_trial; ++j) {
-		dest_wps[j] = src_wps[j];
+		SharedPtrType sp1 = make_shared_func(j);
+		SharedPtrType sp2 = make_shared_func(j + 1000);
+		WeakPtrType	  src_wp(sp1);
+		WeakPtrType	  dest_wp(sp2);
+		dest_wp = src_wp;
+		if (dest_wp.lock()) {
+			volatile int dummy = dest_wp.lock()->id;
+			(void)dummy;
+		}
 	}
 	auto end = std::chrono::high_resolution_clock::now();
 	return std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -123,25 +99,17 @@ long long run_weak_copy_assign_test(int operations_per_trial, MakeSharedFunc mak
 
 template<typename WeakPtrType, typename SharedPtrType, typename MakeSharedFunc>
 long long run_weak_move_assign_test(int operations_per_trial, MakeSharedFunc make_shared_func) {
-	std::vector<SharedPtrType> shared_ptrs;
-	shared_ptrs.reserve(operations_per_trial);
-	for (int j = 0; j < operations_per_trial; ++j) {
-		shared_ptrs.push_back(make_shared_func(j));
-	}
-	std::vector<WeakPtrType> src_wps;
-	src_wps.reserve(operations_per_trial);
-	for (int j = 0; j < operations_per_trial; ++j) {
-		src_wps.emplace_back(shared_ptrs[j]);
-	}
-	std::vector<WeakPtrType> dest_wps;
-	dest_wps.reserve(operations_per_trial);
-	for (int j = 0; j < operations_per_trial; ++j) {
-		dest_wps.emplace_back(); // ИСПРАВЛЕНО: используем конструктор по умолчанию
-	}
-
 	auto start = std::chrono::high_resolution_clock::now();
 	for (int j = 0; j < operations_per_trial; ++j) {
-		dest_wps[j] = std::move(src_wps[j]);
+		SharedPtrType sp1 = make_shared_func(j);
+		SharedPtrType sp2 = make_shared_func(j + 1000);
+		WeakPtrType	  src_wp(sp1);
+		WeakPtrType	  dest_wp(sp2);
+		dest_wp = std::move(src_wp);
+		if (dest_wp.lock()) {
+			volatile int dummy = dest_wp.lock()->id;
+			(void)dummy;
+		}
 	}
 	auto end = std::chrono::high_resolution_clock::now();
 	return std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -149,20 +117,15 @@ long long run_weak_move_assign_test(int operations_per_trial, MakeSharedFunc mak
 
 template<typename WeakPtrType, typename SharedPtrType, typename MakeSharedFunc>
 long long run_weak_shared_assign_test(int operations_per_trial, MakeSharedFunc make_shared_func) {
-	std::vector<SharedPtrType> shared_ptrs;
-	shared_ptrs.reserve(operations_per_trial);
-	for (int j = 0; j < operations_per_trial; ++j) {
-		shared_ptrs.push_back(make_shared_func(j));
-	}
-	std::vector<WeakPtrType> wps;
-	wps.reserve(operations_per_trial);
-	for (int j = 0; j < operations_per_trial; ++j) {
-		wps.emplace_back(); // ИСПРАВЛЕНО: используем конструктор по умолчанию
-	}
-
 	auto start = std::chrono::high_resolution_clock::now();
 	for (int j = 0; j < operations_per_trial; ++j) {
-		wps[j] = shared_ptrs[j];
+		SharedPtrType sp = make_shared_func(j);
+		WeakPtrType	  wp;
+		wp = sp;
+		if (wp.lock()) {
+			volatile int dummy = wp.lock()->id;
+			(void)dummy;
+		}
 	}
 	auto end = std::chrono::high_resolution_clock::now();
 	return std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -170,20 +133,13 @@ long long run_weak_shared_assign_test(int operations_per_trial, MakeSharedFunc m
 
 template<typename WeakPtrType, typename SharedPtrType, typename MakeSharedFunc>
 long long run_weak_reset_test(int operations_per_trial, MakeSharedFunc make_shared_func) {
-	std::vector<SharedPtrType> shared_ptrs;
-	shared_ptrs.reserve(operations_per_trial);
-	for (int j = 0; j < operations_per_trial; ++j) {
-		shared_ptrs.push_back(make_shared_func(j));
-	}
-	std::vector<WeakPtrType> wps;
-	wps.reserve(operations_per_trial);
-	for (int j = 0; j < operations_per_trial; ++j) {
-		wps.emplace_back(shared_ptrs[j]);
-	}
-
 	auto start = std::chrono::high_resolution_clock::now();
 	for (int j = 0; j < operations_per_trial; ++j) {
-		wps[j].reset();
+		SharedPtrType sp = make_shared_func(j);
+		WeakPtrType	  wp(sp);
+		wp.reset();
+		volatile bool is_expired = wp.expired();
+		(void)is_expired;
 	}
 	auto end = std::chrono::high_resolution_clock::now();
 	return std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -191,28 +147,17 @@ long long run_weak_reset_test(int operations_per_trial, MakeSharedFunc make_shar
 
 template<typename WeakPtrType, typename SharedPtrType, typename MakeSharedFunc>
 long long run_weak_swap_test(int operations_per_trial, MakeSharedFunc make_shared_func) {
-	std::vector<SharedPtrType> shared_ptrs_a;
-	std::vector<SharedPtrType> shared_ptrs_b;
-	shared_ptrs_a.reserve(operations_per_trial);
-	shared_ptrs_b.reserve(operations_per_trial);
-	for (int j = 0; j < operations_per_trial; ++j) {
-		shared_ptrs_a.push_back(make_shared_func(j));
-		shared_ptrs_b.push_back(make_shared_func(j + operations_per_trial));
-	}
-
-	std::vector<WeakPtrType> wp1_vec;
-	std::vector<WeakPtrType> wp2_vec;
-	wp1_vec.reserve(operations_per_trial);
-	wp2_vec.reserve(operations_per_trial);
-
-	for (int j = 0; j < operations_per_trial; ++j) {
-		wp1_vec.emplace_back(shared_ptrs_a[j]);
-		wp2_vec.emplace_back(shared_ptrs_b[j]);
-	}
-
 	auto start = std::chrono::high_resolution_clock::now();
 	for (int j = 0; j < operations_per_trial; ++j) {
-		wp1_vec[j].swap(wp2_vec[j]);
+		SharedPtrType sp1 = make_shared_func(j);
+		SharedPtrType sp2 = make_shared_func(j + 1000);
+		WeakPtrType	  wp1(sp1);
+		WeakPtrType	  wp2(sp2);
+		wp1.swap(wp2);
+		if (wp1.lock()) {
+			volatile int dummy = wp1.lock()->id;
+			(void)dummy;
+		}
 	}
 	auto end = std::chrono::high_resolution_clock::now();
 	return std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -220,24 +165,15 @@ long long run_weak_swap_test(int operations_per_trial, MakeSharedFunc make_share
 
 template<typename WeakPtrType, typename SharedPtrType, typename MakeSharedFunc>
 long long run_weak_use_count_test(int operations_per_trial, MakeSharedFunc make_shared_func) {
-	std::vector<SharedPtrType> shared_ptrs;
-	std::vector<WeakPtrType>   weak_ptrs;
-	shared_ptrs.reserve(operations_per_trial);
-	weak_ptrs.reserve(operations_per_trial);
-
-	for (int j = 0; j < operations_per_trial; ++j) {
-		shared_ptrs.push_back(make_shared_func(j));
-		weak_ptrs.emplace_back(shared_ptrs[j]);
-		if (j % 2 == 0) {
-			SharedPtrType temp = shared_ptrs[j];
-			(void)temp;
-		}
-	}
+	SharedPtrType p_main  = make_shared_func(0);
+	SharedPtrType p_copy1 = p_main;
+	SharedPtrType p_copy2 = p_main;
+	WeakPtrType	  wp(p_main);
 
 	volatile size_t total_count = 0;
 	auto			start		= std::chrono::high_resolution_clock::now();
 	for (int j = 0; j < operations_per_trial; ++j) {
-		total_count += weak_ptrs[j].use_count();
+		total_count += wp.use_count();
 	}
 	auto end = std::chrono::high_resolution_clock::now();
 	(void)total_count;
@@ -246,26 +182,19 @@ long long run_weak_use_count_test(int operations_per_trial, MakeSharedFunc make_
 
 template<typename WeakPtrType, typename SharedPtrType, typename MakeSharedFunc>
 long long run_weak_expired_test(int operations_per_trial, MakeSharedFunc make_shared_func) {
-	std::vector<SharedPtrType> shared_ptrs;
-	std::vector<WeakPtrType>   weak_ptrs;
-	shared_ptrs.reserve(operations_per_trial);
-	weak_ptrs.reserve(operations_per_trial);
-
-	for (int j = 0; j < operations_per_trial; ++j) {
-		shared_ptrs.push_back(make_shared_func(j));
-		weak_ptrs.emplace_back(shared_ptrs[j]);
-	}
-
-	for (int j = 0; j < operations_per_trial; ++j) {
-		if (j % 3 == 0) {
-			shared_ptrs[j].reset();
-		}
-	}
+	SharedPtrType p_main = make_shared_func(0);
+	WeakPtrType	  wp(p_main);
 
 	volatile int expired_count = 0;
 	auto		 start		   = std::chrono::high_resolution_clock::now();
 	for (int j = 0; j < operations_per_trial; ++j) {
-		if (weak_ptrs[j].expired()) {
+		if (j % 2 == 0) {
+			p_main.reset();
+		} else if (!p_main) {
+			p_main = make_shared_func(j);
+			wp	   = p_main;
+		}
+		if (wp.expired()) {
 			expired_count++;
 		}
 	}
@@ -276,26 +205,19 @@ long long run_weak_expired_test(int operations_per_trial, MakeSharedFunc make_sh
 
 template<typename WeakPtrType, typename SharedPtrType, typename MakeSharedFunc>
 long long run_weak_lock_test(int operations_per_trial, MakeSharedFunc make_shared_func) {
-	std::vector<SharedPtrType> shared_ptrs;
-	std::vector<WeakPtrType>   weak_ptrs;
-	shared_ptrs.reserve(operations_per_trial);
-	weak_ptrs.reserve(operations_per_trial);
-
-	for (int j = 0; j < operations_per_trial; ++j) {
-		shared_ptrs.push_back(make_shared_func(j));
-		weak_ptrs.emplace_back(shared_ptrs[j]);
-	}
-
-	for (int j = 0; j < operations_per_trial; ++j) {
-		if (j % 3 == 0) {
-			shared_ptrs[j].reset();
-		}
-	}
+	SharedPtrType p_main = make_shared_func(0);
+	WeakPtrType	  wp(p_main);
 
 	volatile int dummy_sum = 0;
 	auto		 start	   = std::chrono::high_resolution_clock::now();
 	for (int j = 0; j < operations_per_trial; ++j) {
-		SharedPtrType locked_ptr = weak_ptrs[j].lock();
+		if (j % 2 == 0) {
+			p_main.reset();
+		} else if (!p_main) {
+			p_main = make_shared_func(j);
+			wp	   = p_main;
+		}
+		SharedPtrType locked_ptr = wp.lock();
 		if (locked_ptr) {
 			dummy_sum += locked_ptr->id;
 		}
@@ -312,17 +234,15 @@ long long run_weak_array_from_shared_creation_test(int				   operations_per_tria
 	std::mt19937					gen(rd());
 	std::uniform_int_distribution<> dist_array_size(1, 10);
 
-	std::vector<SharedPtrArrayType> shared_ptrs;
-	shared_ptrs.reserve(operations_per_trial);
-	for (int j = 0; j < operations_per_trial; ++j) {
-		shared_ptrs.push_back(make_shared_array_func(dist_array_size(gen)));
-	}
-
 	auto start = std::chrono::high_resolution_clock::now();
 	for (int j = 0; j < operations_per_trial; ++j) {
-		WeakPtrArrayType wp(shared_ptrs[j]);
-		volatile bool	 expired_val = wp.expired();
-		(void)expired_val;
+		size_t			   current_array_size = dist_array_size(gen);
+		SharedPtrArrayType sp				  = make_shared_array_func(current_array_size);
+		WeakPtrArrayType   wp(sp);
+		if (wp.lock() && current_array_size > 0) {
+			volatile int dummy = wp.lock()[0].id;
+			(void)dummy;
+		}
 	}
 	auto end = std::chrono::high_resolution_clock::now();
 	return std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -335,20 +255,16 @@ long long run_weak_array_shared_assign_test(int					operations_per_trial,
 	std::mt19937					gen(rd());
 	std::uniform_int_distribution<> dist_array_size(1, 10);
 
-	std::vector<SharedPtrArrayType> shared_ptrs;
-	shared_ptrs.reserve(operations_per_trial);
-	for (int j = 0; j < operations_per_trial; ++j) {
-		shared_ptrs.push_back(make_shared_array_func(dist_array_size(gen)));
-	}
-	std::vector<WeakPtrArrayType> wps;
-	wps.reserve(operations_per_trial);
-	for (int j = 0; j < operations_per_trial; ++j) {
-		wps.emplace_back(); // ИСПРАВЛЕНО: используем конструктор по умолчанию
-	}
-
 	auto start = std::chrono::high_resolution_clock::now();
 	for (int j = 0; j < operations_per_trial; ++j) {
-		wps[j] = shared_ptrs[j];
+		size_t			   current_array_size = dist_array_size(gen);
+		SharedPtrArrayType sp				  = make_shared_array_func(current_array_size);
+		WeakPtrArrayType   wp;
+		wp = sp;
+		if (wp.lock() && current_array_size > 0) {
+			volatile int dummy = wp.lock()[0].id;
+			(void)dummy;
+		}
 	}
 	auto end = std::chrono::high_resolution_clock::now();
 	return std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -361,31 +277,20 @@ long long run_weak_array_lock_test(int				   operations_per_trial,
 	std::mt19937					gen(rd());
 	std::uniform_int_distribution<> dist_array_size(1, 10);
 
-	std::vector<SharedPtrArrayType> shared_ptrs;
-	std::vector<WeakPtrArrayType>	weak_ptrs;
-	std::vector<size_t>				array_sizes;
-	shared_ptrs.reserve(operations_per_trial);
-	weak_ptrs.reserve(operations_per_trial);
-	array_sizes.reserve(operations_per_trial);
-
-	for (int j = 0; j < operations_per_trial; ++j) {
-		size_t current_size = dist_array_size(gen);
-		shared_ptrs.push_back(make_shared_array_func(current_size));
-		weak_ptrs.emplace_back(shared_ptrs[j]);
-		array_sizes.push_back(current_size);
-	}
-
-	for (int j = 0; j < operations_per_trial; ++j) {
-		if (j % 3 == 0) {
-			shared_ptrs[j].reset();
-		}
-	}
+	SharedPtrArrayType p_main = make_shared_array_func(dist_array_size(gen));
+	WeakPtrArrayType   wp(p_main);
 
 	volatile int dummy_sum = 0;
 	auto		 start	   = std::chrono::high_resolution_clock::now();
 	for (int j = 0; j < operations_per_trial; ++j) {
-		SharedPtrArrayType locked_ptr = weak_ptrs[j].lock();
-		if (locked_ptr && array_sizes[j] > 0) {
+		if (j % 2 == 0) {
+			p_main.reset();
+		} else if (!p_main) {
+			p_main = make_shared_array_func(dist_array_size(gen));
+			wp	   = p_main;
+		}
+		SharedPtrArrayType locked_ptr = wp.lock();
+		if (locked_ptr && p_main && dist_array_size(gen) > 0) {
 			dummy_sum += locked_ptr[0].id;
 		}
 	}

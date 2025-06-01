@@ -59,11 +59,11 @@ void test_weak_single_object_construction() {
 
 	{
 		raw::weak_ptr<TestObject> wptr2(nullptr);
-		print_weak_ptr_state("wptr2 (nullptr_t)", wptr2);
+		print_weak_ptr_state("wptr2 (std::nullptr_t)", wptr2);
 		assert(wptr2.expired() && wptr2.use_count() == 0);
-		verify_active_objects("wptr2 nullptr_t construction", initial_active_objects);
+		verify_active_objects("wptr2 std::nullptr_t construction", initial_active_objects);
 	}
-	verify_active_objects("wptr2 nullptr_t destruction", initial_active_objects);
+	verify_active_objects("wptr2 std::nullptr_t destruction", initial_active_objects);
 
 	{
 		raw::shared_ptr<TestObject> sptr = raw::make_shared<TestObject>(100);

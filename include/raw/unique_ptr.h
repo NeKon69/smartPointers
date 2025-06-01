@@ -35,7 +35,7 @@ public:
 		return *this;
 	}
 
-	unique_ptr& operator=(nullptr_t) noexcept {
+	unique_ptr& operator=(std::nullptr_t) noexcept {
 		// Clean up the current pointer
 		delete this->ptr;
 		this->ptr = nullptr;
@@ -92,7 +92,7 @@ public:
 		return *this;
 	}
 
-	unique_ptr& operator=(nullptr_t) noexcept {
+	unique_ptr& operator=(std::nullptr_t) noexcept {
 		// Clean up the current pointer
 		delete[] this->ptr;
 		this->ptr = nullptr;
