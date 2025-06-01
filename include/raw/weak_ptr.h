@@ -93,10 +93,7 @@ public:
 	}
 
 	inline size_t use_count() const noexcept {
-		if (hub_ptr) {
-			return hub_ptr->use_count.load(std::memory_order_acquire);
-		}
-		return 0;
+		return (hub_ptr ? hub_ptr->get_use_count() : 0);
 	}
 
 	inline bool expired() const noexcept {
@@ -107,7 +104,12 @@ public:
 	}
 
 	inline shared_ptr<T> lock() const noexcept {
+#ifdef RAW_MULTI_THREADED
 		if (this->hub_ptr && this->hub_ptr->try_increment_use_count_if_not_zero()) {
+#else
+		if (this->hub_ptr && this->hub_ptr->use_count > 0) {
+			this->hub_ptr->use_count++;
+#endif
 			return shared_ptr<T>(this->ptr, this->hub_ptr);
 		}
 		return shared_ptr<T>();
