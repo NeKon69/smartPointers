@@ -16,8 +16,13 @@
 namespace raw {
 class hub {
 public:
+#ifdef RAW_MULTI_THREADED
 	std::atomic<size_t> use_count;
 	std::atomic<size_t> weak_count;
+#else
+	size_t use_count;
+	size_t weak_count;
+#endif
 
 	void*	   managed_object_ptr;
 	std::byte* allocated_base_block;
@@ -40,15 +45,27 @@ public:
 	~hub() = default;
 
 	inline void increment_use_count() noexcept {
+#ifdef RAW_MULTI_THREADED
 		use_count.fetch_add(1, std::memory_order_relaxed);
+#else
+		use_count++;
+#endif
 	}
 	inline void decrement_use_count() noexcept {
+#ifdef RAW_MULTI_THREADED
 		if (use_count.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+#else
+		if (--use_count == 0) {
+#endif
 			if (destroy_obj_func) {
 				destroy_obj_func(managed_object_ptr, obj_size);
 				managed_object_ptr = nullptr;
 			}
+#ifdef RAW_MULTI_THREADED
 			if (weak_count.load(std::memory_order_acquire) == 0) {
+#else
+			if (weak_count == 0) {
+#endif
 				if (deallocate_mem_func) {
 					deallocate_mem_func(this, allocated_base_block);
 				}
@@ -57,6 +74,7 @@ public:
 	}
 
 	inline bool try_increment_use_count_if_not_zero() {
+#ifdef RAW_MULTI_THREADED
 		size_t current_count = use_count.load(std::memory_order_relaxed);
 		while (current_count > 0) {
 			if (use_count.compare_exchange_weak(current_count, current_count + 1,
@@ -65,15 +83,29 @@ public:
 				return true;
 			}
 		}
+#else
+		if (use_count > 0) {
+			use_count++;
+			return true;
+		}
+#endif
 		return false;
 	}
 
 	inline void increment_weak_count() noexcept {
+#ifdef RAW_MULTI_THREADED
 		weak_count.fetch_add(1, std::memory_order_relaxed);
+#else
+		weak_count++;
+#endif
 	}
 	inline void decrement_weak_count() noexcept {
+#ifdef RAW_MULTI_THREADED
 		if (weak_count.fetch_sub(1, std::memory_order_acq_rel) == 1 &&
 			use_count.load(std::memory_order_acquire) == 0) {
+#else
+		if (--weak_count == 0 && use_count == 0) {
+#endif
 			if (deallocate_mem_func) {
 				deallocate_mem_func(this, allocated_base_block);
 			}
@@ -82,6 +114,14 @@ public:
 
 	inline void set_managed_object_ptr(void* obj_ptr) noexcept {
 		managed_object_ptr = obj_ptr;
+	}
+
+	inline size_t get_use_count() const noexcept {
+#ifdef RAW_MULTI_THREADED
+		return use_count.load(std::memory_order_acquire);
+#else
+		return use_count;
+#endif
 	}
 };
 

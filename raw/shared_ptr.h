@@ -71,7 +71,7 @@ public:
 	}
 
 	[[nodiscard]] inline size_t use_count() const noexcept {
-		return hub_ptr ? hub_ptr->use_count.load(std::memory_order::acquire) : 0;
+		return hub_ptr ? hub_ptr->get_use_count() : 0;
 	}
 
 	[[nodiscard]] inline bool unique() const noexcept {
